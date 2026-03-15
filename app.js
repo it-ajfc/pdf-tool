@@ -113,6 +113,10 @@ const TEXTS = {
       cannotDeleteAll:'لا يمكن حذف جميع الصفحات',
       textOnlyWord:'ملف Word الناتج يعتمد على النص المستخرج محليًا، وليس تحويلًا مطابقًا لتخطيط PDF.',
       wordReady:'✅ تم إنشاء ملف Word بصيغة DOCX من النص المستخرج.',
+      outputFileName:'اسم ملف الإخراج',
+      outputBaseName:'الاسم الأساسي للملفات',
+      outputPlaceholder:'اكتب اسم الملف',
+      outputBasePlaceholder:'اكتب الاسم الأساسي',
       workerNote:'إذا لم يعمل الملف عند فتحه مباشرة من الجهاز، انشره عبر GitHub Pages بدل file://'
     }
   },
@@ -210,9 +214,30 @@ const TEXTS = {
       cannotDeleteAll:'Cannot delete all pages',
       textOnlyWord:'The generated Word file is based on extracted text, not full PDF layout conversion.',
       wordReady:'✅ DOCX Word file created from extracted text.',
+      outputFileName:'Output File Name',
+      outputBaseName:'Base File Name',
+      outputPlaceholder:'Enter file name',
+      outputBasePlaceholder:'Enter base name',
       workerNote:'If this does not work from a local file, publish it on GitHub Pages instead of opening via file://'
     }
   }
+};
+
+const DEFAULT_OUTPUT_NAMES = {
+  merge: 'merged',
+  split: 'split',
+  compress: 'compressed',
+  rotate: 'rotated',
+  reorder: 'reordered',
+  deletePage: 'deleted_pages',
+  watermark: 'watermarked',
+  addPageNum: 'numbered',
+  extractImages: 'page',
+  pdfToJpg: 'page',
+  jpgToPdf: 'images_to_pdf',
+  pdfToWord: 'converted',
+  pdfToText: 'extracted',
+  createPdf: 'document'
 };
 
 let lang = 'ar';
@@ -418,6 +443,51 @@ function moveFile(i, d) {
   renderFileList();
 }
 
+function sanitizeBaseName(name, fallback='output') {
+  const clean = String(name || '')
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, '')
+    .replace(/\s+/g, '_')
+    .replace(/\.+$/g, '');
+  return clean || fallback;
+}
+
+function ensureExt(name, ext) {
+  const base = sanitizeBaseName(name, 'output');
+  return base.toLowerCase().endsWith(ext.toLowerCase()) ? base : `${base}${ext}`;
+}
+
+function getOutputName(toolId, ext='') {
+  const fallback = DEFAULT_OUTPUT_NAMES[toolId] || 'output';
+  const raw = gv('opt-output-name', fallback);
+  return ext ? ensureExt(raw, ext) : sanitizeBaseName(raw, fallback);
+}
+
+function getOutputBaseName(toolId) {
+  const fallback = DEFAULT_OUTPUT_NAMES[toolId] || 'output';
+  return sanitizeBaseName(gv('opt-output-name', fallback), fallback);
+}
+
+function toolSupportsSingleOutputName(id) {
+  return [
+    'merge',
+    'compress',
+    'rotate',
+    'reorder',
+    'deletePage',
+    'watermark',
+    'addPageNum',
+    'jpgToPdf',
+    'pdfToWord',
+    'pdfToText',
+    'createPdf'
+  ].includes(id);
+}
+
+function toolSupportsBaseOutputName(id) {
+  return ['split','pdfToJpg','extractImages'].includes(id);
+}
+
 function buildOptions(id) {
   const c = g('tool-options');
   const ui = t().ui;
@@ -480,6 +550,24 @@ function buildOptions(id) {
     n.className = 'note';
     n.textContent = text;
     c.appendChild(n);
+  }
+
+  if (toolSupportsSingleOutputName(id)) {
+    row(
+      grp(
+        ui.outputFileName,
+        inp('opt-output-name', 'text', DEFAULT_OUTPUT_NAMES[id] || 'output', ui.outputPlaceholder)
+      )
+    );
+  }
+
+  if (toolSupportsBaseOutputName(id)) {
+    row(
+      grp(
+        ui.outputBaseName,
+        inp('opt-output-name', 'text', DEFAULT_OUTPUT_NAMES[id] || 'output', ui.outputBasePlaceholder)
+      )
+    );
   }
 
   if (id === 'rotate') {
@@ -739,7 +827,11 @@ async function buildDocxFromText(text, filenameBase='output') {
   });
 
   const blob = await Packer.toBlob(doc);
-  dlBlob(await blob.arrayBuffer(), `${filenameBase}.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  dlBlob(
+    await blob.arrayBuffer(),
+    ensureExt(filenameBase, '.docx'),
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  );
 }
 
 async function runTool(id) {
@@ -754,7 +846,7 @@ async function runTool(id) {
       pages.forEach(p => merged.addPage(p));
     }
     setProgress(100);
-    dlBlob(await merged.save(), 'merged.pdf');
+    dlBlob(await merged.save(), getOutputName('merge', '.pdf'));
     showStatus('success', t().ui.done);
     return;
   }
@@ -763,6 +855,7 @@ async function runTool(id) {
     const doc = await loadDoc(wsFiles[0]);
     const total = doc.getPageCount();
     const mode = gv('opt-split-mode', 'all');
+    const baseName = getOutputBaseName('split');
     setProgress(30);
 
     if (mode === 'all') {
@@ -771,7 +864,7 @@ async function runTool(id) {
         const d = await PDFLib.PDFDocument.create();
         const [p] = await d.copyPages(doc, [i]);
         d.addPage(p);
-        dlBlob(await d.save(), `page_${i+1}.pdf`);
+        dlBlob(await d.save(), `${baseName}_page_${i+1}.pdf`);
       }
     } else if (mode === 'range') {
       const from = Math.max(0, +gv('opt-split-from', 1) - 1);
@@ -781,7 +874,7 @@ async function runTool(id) {
       for (let i = from; i <= to; i++) idx.push(i);
       const pages = await d.copyPages(doc, idx);
       pages.forEach(p => d.addPage(p));
-      dlBlob(await d.save(), `pages_${from+1}_to_${to+1}.pdf`);
+      dlBlob(await d.save(), `${baseName}_${from+1}_to_${to+1}.pdf`);
     } else {
       const n = Math.max(1, +gv('opt-split-n', 2));
       let part = 1;
@@ -792,7 +885,7 @@ async function runTool(id) {
         const pages = await d.copyPages(doc, idx);
         pages.forEach(p => d.addPage(p));
         setProgress(30 + Math.round((i+n) / total * 60));
-        dlBlob(await d.save(), `part_${part++}.pdf`);
+        dlBlob(await d.save(), `${baseName}_part_${part++}.pdf`);
       }
     }
 
@@ -816,7 +909,7 @@ async function runTool(id) {
     const bytes = await doc.save({useObjectStreams:true});
     const pct = Math.max(0, Math.round((1 - bytes.length / orig) * 100));
     setProgress(100);
-    dlBlob(bytes, 'compressed.pdf');
+    dlBlob(bytes, getOutputName('compress', '.pdf'));
     showStatus('success', `✅ ${fmtSz(orig)} → ${fmtSz(bytes.length)} (${pct > 0 ? '-' + pct : '0'}%)`);
     return;
   }
@@ -840,7 +933,7 @@ async function runTool(id) {
     });
 
     setProgress(100);
-    dlBlob(await doc.save(), 'rotated.pdf');
+    dlBlob(await doc.save(), getOutputName('rotate', '.pdf'));
     showStatus('success', t().ui.done);
     return;
   }
@@ -873,7 +966,7 @@ async function runTool(id) {
     });
 
     setProgress(100);
-    dlBlob(await doc.save(), 'watermarked.pdf');
+    dlBlob(await doc.save(), getOutputName('watermark', '.pdf'));
     showStatus('success', t().ui.done);
     return;
   }
@@ -896,7 +989,7 @@ async function runTool(id) {
     });
 
     setProgress(100);
-    dlBlob(await doc.save(), 'numbered.pdf');
+    dlBlob(await doc.save(), getOutputName('addPageNum', '.pdf'));
     showStatus('success', t().ui.done);
     return;
   }
@@ -915,7 +1008,7 @@ async function runTool(id) {
   if (id === 'pdfToText') {
     const text = await extractPdfText(wsFiles[0], false);
     setProgress(100);
-    dlText(text, 'extracted.txt');
+    dlText(text, getOutputName('pdfToText', '.txt'));
     showStatus('success', t().ui.done);
     return;
   }
@@ -923,7 +1016,7 @@ async function runTool(id) {
   if (id === 'pdfToWord') {
     const text = await extractPdfText(wsFiles[0], true);
     setProgress(92);
-    await buildDocxFromText(text, wsFiles[0].name.replace(/\.pdf$/i,'') || 'converted');
+    await buildDocxFromText(text, getOutputName('pdfToWord'));
     setProgress(100);
     showStatus('warning', t().ui.wordReady + ' ' + t().ui.textOnlyWord);
     return;
@@ -949,7 +1042,7 @@ async function runTool(id) {
     pages.forEach(p => nd.addPage(p));
 
     setProgress(100);
-    dlBlob(await nd.save(), 'deleted_pages.pdf');
+    dlBlob(await nd.save(), getOutputName('deletePage', '.pdf'));
     showStatus('success', t().ui.done);
     return;
   }
@@ -960,7 +1053,7 @@ async function runTool(id) {
     const pages = await nd.copyPages(doc, doc.getPageIndices());
     pages.forEach(p => nd.addPage(p));
     setProgress(100);
-    dlBlob(await nd.save(), 'reordered.pdf');
+    dlBlob(await nd.save(), getOutputName('reorder', '.pdf'));
     showStatus('success', t().ui.done);
     return;
   }
@@ -1034,7 +1127,7 @@ async function runTool(id) {
     }
 
     setProgress(100);
-    dlBlob(await doc.save(), (title || 'document') + '.pdf');
+    dlBlob(await doc.save(), getOutputName('createPdf', '.pdf'));
     showStatus('success', t().ui.done);
     return;
   }
@@ -1060,7 +1153,7 @@ async function runTool(id) {
     }
 
     setProgress(100);
-    dlBlob(await doc.save(), 'images_to_pdf.pdf');
+    dlBlob(await doc.save(), getOutputName('jpgToPdf', '.pdf'));
     showStatus('success', t().ui.done);
     return;
   }
@@ -1068,6 +1161,7 @@ async function runTool(id) {
   if (id === 'pdfToJpg' || id === 'extractImages') {
     const buf = await wsFiles[0].arrayBuffer();
     const pdfDoc = await pdfjsLib.getDocument({data:buf}).promise;
+    const baseName = getOutputBaseName(id);
 
     for (let i = 1; i <= pdfDoc.numPages; i++) {
       setProgress(10 + Math.round(i / pdfDoc.numPages * 85));
@@ -1077,7 +1171,7 @@ async function runTool(id) {
       canvas.width = vp.width;
       canvas.height = vp.height;
       await page.render({canvasContext:canvas.getContext('2d'), viewport:vp}).promise;
-      dlImg(canvas.toDataURL('image/jpeg', .92), `page_${i}.jpg`);
+      dlImg(canvas.toDataURL('image/jpeg', .92), `${baseName}_${i}.jpg`);
     }
 
     setProgress(100);
