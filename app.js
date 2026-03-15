@@ -113,7 +113,7 @@ const TEXTS = {
       cannotDeleteAll:'لا يمكن حذف جميع الصفحات',
       textOnlyWord:'ملف Word الناتج يعتمد على النص المستخرج محليًا، وليس تحويلًا مطابقًا لتخطيط PDF.',
       wordReady:'✅ تم إنشاء ملف Word بصيغة DOCX من النص المستخرج.',
-      outputFileName:'اسم ملف الإخراج',
+      outputFileName:'اسم ملف الجديد',
       outputBaseName:'الاسم الأساسي للملفات',
       outputPlaceholder:'اكتب اسم الملف',
       outputBasePlaceholder:'اكتب الاسم الأساسي',
