@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>أدوات PDF</title>
+  <title>أدوات PDF — معالجة محلية 100%</title>
+  <meta name="description" content="أدوات PDF تعمل بالكامل داخل متصفحك: دمج، تقسيم، تدوير، حذف صفحات، علامة مائية، استخراج نص، PDF إلى JPG، JPG إلى PDF، وتصدير نص PDF إلى Word — بدون رفع الملفات." />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -11,7 +12,7 @@
   <a class="nav-logo" href="#">
     <div class="nav-logo-icon">📄</div>
     <span class="nav-logo-text" id="nav-title">أدوات PDF</span>
-    <span class="nav-badge" id="nav-badge">مجاني</span>
+    <span class="nav-badge" id="nav-badge">محلي 100%</span>
   </a>
   <div class="nav-actions">
     <button class="nav-btn" onclick="toggleTheme()" id="theme-btn">🌙</button>
@@ -32,9 +33,9 @@
 <section id="hero">
   <div class="hero-tag">🔒 <span id="hero-tag-text">خصوصية تامة — بدون رفع ملفات أبداً</span></div>
   <h1 id="hero-h1">جميع أدوات <em>PDF</em> التي تحتاجها</h1>
-  <p id="hero-sub">دمج، تقسيم، ضغط، تدوير، علامة مائية، حماية وأكثر — مجاناً. ملفاتك لا تغادر جهازك أبداً.</p>
+  <p id="hero-sub">دمج، تقسيم، تدوير، حذف صفحات، علامة مائية، استخراج نص، PDF إلى JPG، JPG إلى PDF، وWord نصّي — مجاناً. ملفاتك لا تغادر جهازك أبداً.</p>
   <div id="search-wrap">
-    <input id="search-input" type="text" placeholder="ابحث عن أداة..." oninput="renderTools()" autocomplete="off"/>
+    <input id="search-input" type="text" placeholder="ابحث عن أداة..." oninput="renderTools()" autocomplete="off" />
   </div>
 </section>
 
@@ -43,18 +44,22 @@
   <button class="tab-btn" data-cat="popular" onclick="setTab(this)">شائع</button>
   <button class="tab-btn" data-cat="organize" onclick="setTab(this)">تنظيم</button>
   <button class="tab-btn" data-cat="convert" onclick="setTab(this)">تحويل</button>
-  <button class="tab-btn" data-cat="security" onclick="setTab(this)">الأمان</button>
   <button class="tab-btn" data-cat="edit" onclick="setTab(this)">تحرير</button>
 </div>
 
-<div id="tools-section"><div id="tools-grid"></div></div>
+<div id="tools-section">
+  <div id="tools-grid"></div>
+</div>
 
 <div id="workspace-overlay" onclick="maybeClose(event)">
   <div id="workspace-panel">
     <div class="ws-header">
       <div class="ws-title-group">
         <div class="ws-icon-wrap" id="ws-icon-wrap">📄</div>
-        <div><div class="ws-title" id="ws-title">أداة</div><div class="ws-subtitle" id="ws-subtitle"></div></div>
+        <div>
+          <div class="ws-title" id="ws-title">أداة</div>
+          <div class="ws-subtitle" id="ws-subtitle"></div>
+        </div>
       </div>
       <button class="ws-close" onclick="closeWs()">✕</button>
     </div>
@@ -63,7 +68,7 @@
 
     <div class="ws-body">
       <div class="drop-zone" id="dz" ondragover="dzOver(event)" ondragleave="dzLeave()" ondrop="dzDrop(event)">
-        <input type="file" id="file-input" accept=".pdf" onchange="handleFileInput(this.files)"/>
+        <input type="file" id="file-input" accept=".pdf" onchange="handleFileInput(this.files)" />
         <div class="dz-icon">📂</div>
         <div class="dz-title" id="dz-title">أفلت ملف PDF هنا</div>
         <div class="dz-sub" id="dz-sub">أو انقر للاختيار</div>
@@ -72,27 +77,39 @@
 
       <div class="file-list" id="file-list"></div>
       <button class="btn-add-more" id="btn-add-more" style="display:none" onclick="document.getElementById('file-input').click()">➕ إضافة المزيد</button>
+
       <div id="tool-options"></div>
-      <div id="wm-preview-box"><div id="wm-preview-text">CONFIDENTIAL</div></div>
+
+      <div id="wm-preview-box">
+        <div id="wm-preview-text">CONFIDENTIAL</div>
+      </div>
+
       <textarea id="extracted-text-area" readonly placeholder="النص المستخرج..."></textarea>
       <button id="btn-copy-text" onclick="copyExtracted()">📋 نسخ النص</button>
+
       <div class="progress-wrap" id="progress-wrap">
-        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
       </div>
+
       <div class="status-msg" id="status-msg"></div>
+
       <button class="btn-primary" id="btn-process" onclick="processTool()" disabled>
-        <span id="btn-icon">⚙️</span> <span id="btn-label">معالجة وتنزيل</span>
+        <span id="btn-icon">⚙️</span>
+        <span id="btn-label">معالجة وتنزيل</span>
       </button>
     </div>
   </div>
 </div>
 
 <footer id="footer">
-  <strong>🔒 خصوصية تامة</strong> — ملفاتك لا تُرفع أبداً · مجاني © 2025
+  <strong>🔒 خصوصية تامة</strong> — جميع العمليات تتم داخل متصفحك · مجاني © 2026
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://unpkg.com/docx@9.5.1/dist/index.umd.cjs"></script>
 <script src="app.js"></script>
 </body>
 </html>
